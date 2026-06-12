@@ -1,0 +1,85 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling"
+
+[project]
+name = "deepreach"
+version = "0.1.0"
+description = "Reachable CVE Scanner for Node and Python projects"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "UNBOUND '26 Team"}
+]
+keywords = ["security", "cve", "scanner", "reachability", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/widgetwalker/deepreach_openbound"
+Documentation = "https://github.com/widgetwalker/deepreach_openbound#readme"
+Repository = "https://github.com/widgetwalker/deepreach_openbound"
+Issues = "https://github.com/widgetwalker/deepreach_openbound/actions"
+
+[project.scripts]
+deepreach = "deepreach.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "hypothesis>=6.0",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/deepreach",
+    "docs/*",
+    "examples/*",
+    "tests/*",
+    "[!**/__pycache__]",
+    "[!**/*.pyc]",
+]
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "/src/deepreach",
+    "docs/*",
+    "examples/*",
+    "tests/*",
+    "[!**/__pycache__]",
+    "[!**/*.pyc]",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "W", "C90"]
+ignore = []
+extend-exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.per-file-ignore]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = false
