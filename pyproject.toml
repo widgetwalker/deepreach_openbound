@@ -76,7 +76,7 @@ extend-exclude = [
     "*.egg-info",
 ]
 
-[tool.ruff.per-file-ignore]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.mypy]

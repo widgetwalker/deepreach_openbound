@@ -1,6 +1,7 @@
 """Command-line interface for DeepReach."""
 
 import argparse
+import logging
 import sys
 from typing import List, Optional
 
@@ -22,9 +23,9 @@ def create_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {__version__}"
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
+
     # init command
     init_parser = subparsers.add_parser(
         "init",
@@ -40,7 +41,7 @@ def create_parser() -> argparse.ArgumentParser:
         choices=["npm", "pip"],
         help="Limit to specific ecosystem (default: both)"
     )
-    
+
     # scan command
     scan_parser = subparsers.add_parser(
         "scan",
@@ -92,7 +93,7 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Continue if some advisory sources fail"
     )
-    
+
     # explain command
     explain_parser = subparsers.add_parser(
         "explain",
@@ -106,19 +107,19 @@ def create_parser() -> argparse.ArgumentParser:
         "cve_id",
         help="CVE ID to explain (e.g., CVE-2024-1234)"
     )
-    
+
     # self-test command
     subparsers.add_parser(
         "self-test",
         help="Run internal self-test suite"
     )
-    
+
     # license command
     subparsers.add_parser(
         "license",
         help="Show license and third-party notices"
     )
-    
+
     return parser
 
 
@@ -126,14 +127,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     """Main CLI entry point."""
     if argv is None:
         argv = sys.argv[1:]
-    
+
     parser = create_parser()
     args = parser.parse_args(argv)
-    
+
     # Configure logging
     if getattr(args, 'debug', False):
         logger.setLevel(logging.DEBUG)
-    
+
     # Handle commands
     if args.command == "init":
         return _init_command(args)
@@ -193,7 +194,7 @@ def _license_command(args) -> int:
             license_content = f.read()
         with open("NOTICE", "r", encoding="utf-8") as f:
             notice_content = f.read()
-        
+
         print("=== DeepReach License ===")
         print(license_content)
         print("\n=== Third-Party Notices ===")
