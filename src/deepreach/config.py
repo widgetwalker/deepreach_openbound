@@ -12,7 +12,7 @@ def get_cache_dir() -> Path:
         cache_dir = Path(xdg_cache) / "deepreach"
     else:
         cache_dir = Path.home() / ".cache" / "deepreach"
-    
+
     cache_dir.mkdir(parents=True, exist_ok=True)
     return cache_dir
 
