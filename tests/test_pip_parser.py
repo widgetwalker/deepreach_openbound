@@ -7,7 +7,9 @@ from deepreach.lockfile_parser.pip import PipLockfileParser
 
 class TestPipParser(unittest.TestCase):
     def test_parse_requirements(self):
-        req_path = os.path.join('examples', 'vulnerable-app', 'python', 'requirements.txt')
+        req_path = os.path.join(
+            'examples', 'vulnerable-app', 'python', 'requirements.txt'
+        )
         with open(req_path, 'r') as f:
             reqdata = f.read()
         parser = PipLockfileParser()
