@@ -1,13 +1,15 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('src'))
 import unittest
-from src.deepreach.lockfile_parser.npm import NpmLockfileParser
+from deepreach.lockfile_parser.npm import NpmLockfileParser
 
 class TestNpmParser(unittest.TestCase):
     def test_parse_lockfile(self):
-        lockfile_path = os.path.join('examples', 'vulnerable-app', 'nodejs', 'package-lock.json')
+        lockfile_path = os.path.join(
+            'examples', 'vulnerable-app', 'nodejs', 'package-lock.json'
+        )
         with open(lockfile_path, 'r') as f:
             lockdata = f.read()
         parser = NpmLockfileParser()

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Protocol, List, Tuple, runtime_checkable
+from typing import Protocol, List, Tuple, runtime_checkable, Optional
 
 
 @runtime_checkable
 class EcosystemAdapter(Protocol):
     """Protocol for lockfile ecosystem adapters."""
 
-    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:
+    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
         """
         Parse lockfile content and return dependency tuples.
 

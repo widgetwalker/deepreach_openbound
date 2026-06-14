@@ -1,10 +1,8 @@
 """NPM lockfile parser (package-lock.json v1/v2/v3)."""
 
 import json
-import re
 from typing import List, Tuple, Optional
 
-from .base import EcosystemAdapter
 
 
 class NpmLockfileParser:
@@ -15,14 +13,14 @@ class NpmLockfileParser:
         try:
             data = json.loads(content)
             return (
-                isinstance(data, dict) and 
-                "lockfileVersion" in data and 
+                isinstance(data, dict) and
+                "lockfileVersion" in data and
                 "packages" in data
             )
         except (json.JSONDecodeError, TypeError):
             return False
 
-    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:
+    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
         """Parse package-lock.json and return dependency tuples."""
         try:
             data = json.loads(content)
@@ -32,31 +30,30 @@ class NpmLockfileParser:
         if not self.detect(content):
             raise ValueError("Not a valid package-lock.json file")
 
-        dependencies = []
+        dependencies: List[Tuple[str, str, str, Optional[str], List[str]]] = []
         lockfile_version = data.get("lockfileVersion", 0)
         packages = data.get("packages", {})
 
         # Handle different lockfile versions
-        if lockfileVersion >= 2:
+        if lockfile_version >= 2:
             # v2/v3 format: packages object with paths as keys
             for path, package_info in packages.items():
-                if path == "":
-                    # Skip root package
+                if path == "" or not path.startswith("node_modules/"):
+                    # Skip root package or non-dependency paths
                     continue
-                
-                # Extract package name and version from path
-                # Format: node_modules/<package_name>@<version> or node_modules/<scope>/<package_name>@<version>
-                match = re.match(r"node_modules?/(.+)@([^/@]+)(?:/.*)?$", path)
-                if not match:
+
+                # Extract package name from path (e.g., node_modules/axios)
+                parts = path.split("node_modules/")
+                name = parts[-1]
+                version = package_info.get("version", "")
+
+                if not version:
                     continue
-                
-                name = match.group(1)
-                version = match.group(2)
-                
+
                 # Determine parent from path
                 parent_name = None
-                dep_path = []
-                
+                dep_path: List[str] = []
+
                 # For now, we'll keep it simple - in a full implementation,
                 # we would trace dependencies through the "dependencies" field
                 dependencies.append(("npm", name, version, parent_name, dep_path))
@@ -68,8 +65,8 @@ class NpmLockfileParser:
                     version = version_info.get("version", "")
                 else:
                     version = str(version_info)
-                
+
                 if version:
                     dependencies.append(("npm", name, version, None, []))
-        
+
         return dependencies
