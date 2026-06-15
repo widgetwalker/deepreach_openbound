@@ -1,6 +1,6 @@
 """NVD adapter for vulnerability federation (feature-flagged)."""
 
-from typing import List, Optional
+from typing import List
 from ..models import Advisory
 from .base import SourceAdapter
 from ..log import get_logger
@@ -19,7 +19,7 @@ class NVDAdapter(SourceAdapter):
     def get_name(self) -> str:
         return "NVD"
 
-    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:
+    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:  # noqa: E501
         """Fetch advisories for a specific package version from NVD."""
         # NVD integration is feature-flagged and not implemented in v1
         # This is a placeholder for future implementation
