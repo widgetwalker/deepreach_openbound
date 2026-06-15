@@ -4,11 +4,9 @@ import sqlite3
 import json
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
 
 from ..models import Advisory
 from ..config import get_vulns_db_path
-from ..hashing import stable_hash
 
 
 class VulnerabilityStore:
@@ -37,36 +35,38 @@ class VulnerabilityStore:
                     UNIQUE(cve_id, ecosystem, package, version_range, source)
                 )
             """)
-            
+
             # Create indexes for common queries
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_advisories_lookup 
+                CREATE INDEX IF NOT EXISTS idx_advisories_lookup
                 ON advisories(ecosystem, package, severity)
             """)
-            
+
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_advisories_cached 
+                CREATE INDEX IF NOT EXISTS idx_advisories_cached
                 ON advisories(cached_at)
             """)
-            
+
             # Schema version tracking
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS schema_version (
                     version INTEGER PRIMARY KEY
                 )
             """)
-            
+
             # Insert initial schema version if not exists
             cursor = conn.execute("SELECT COUNT(*) FROM schema_version")
             if cursor.fetchone()[0] == 0:
                 conn.execute("INSERT INTO schema_version (version) VALUES (1)")
 
-    def upsert_advisory(self, advisory: Advisory, source: str, raw_data: Optional[dict] = None) -> None:
+    def upsert_advisory(
+        self, advisory: Advisory, source: str, raw_data: Optional[dict] = None
+    ) -> None:
         """Insert or update an advisory in the database."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
-                INSERT OR REPLACE INTO advisories 
-                (cve_id, ecosystem, package, version_range, vulnerable_functions, 
+                INSERT OR REPLACE INTO advisories
+                (cve_id, ecosystem, package, version_range, vulnerable_functions,
                  fix_version, severity, source, raw_data, cached_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """, (
@@ -74,7 +74,9 @@ class VulnerabilityStore:
                 advisory.ecosystem,
                 advisory.package,
                 advisory.vulnerable_version_range,
-                json.dumps(advisory.vulnerable_functions) if advisory.vulnerable_functions else None,
+                json.dumps(advisory.vulnerable_functions)
+                if advisory.vulnerable_functions
+                else None,
                 advisory.fix_version,
                 advisory.severity,
                 source,
@@ -92,7 +94,7 @@ class VulnerabilityStore:
                 WHERE ecosystem = ? AND package = ?
                 ORDER BY severity DESC, cve_id
             """, (ecosystem, package))
-            
+
             advisories = []
             for row in cursor:
                 advisory = Advisory(
@@ -100,12 +102,16 @@ class VulnerabilityStore:
                     ecosystem=row["ecosystem"],
                     package=row["package"],
                     vulnerable_version_range=row["version_range"],
-                    vulnerable_functions=json.loads(row["vulnerable_functions"]) if row["vulnerable_functions"] else None,
+                    vulnerable_functions=(
+                        json.loads(row["vulnerable_functions"])
+                        if row["vulnerable_functions"]
+                        else None
+                    ),
                     fix_version=row["fix_version"],
                     severity=row["severity"]
                 )
                 advisories.append(advisory)
-            
+
             return advisories
 
     def get_advisory_by_cve(self, cve_id: str) -> Optional[Advisory]:
@@ -119,7 +125,7 @@ class VulnerabilityStore:
                 WHERE cve_id = ?
                 LIMIT 1
             """, (cve_id,))
-            
+
             row = cursor.fetchone()
             if row:
                 return Advisory(
@@ -127,7 +133,11 @@ class VulnerabilityStore:
                     ecosystem=row["ecosystem"],
                     package=row["package"],
                     vulnerable_version_range=row["version_range"],
-                    vulnerable_functions=json.loads(row["vulnerable_functions"]) if row["vulnerable_functions"] else None,
+                    vulnerable_functions=(
+                        json.loads(row["vulnerable_functions"])
+                        if row["vulnerable_functions"]
+                        else None
+                    ),
                     fix_version=row["fix_version"],
                     severity=row["severity"]
                 )
@@ -143,7 +153,7 @@ class VulnerabilityStore:
         """Get statistics about the cache."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_count,
                     COUNT(DISTINCT ecosystem || ':' || package) as unique_packages,
                     MIN(cached_at) as oldest_entry,
@@ -151,7 +161,7 @@ class VulnerabilityStore:
                 FROM advisories
             """)
             row = cursor.fetchone()
-            
+
             return {
                 "total_advisories": row[0] if row else 0,
                 "unique_packages": row[1] if row else 0,
