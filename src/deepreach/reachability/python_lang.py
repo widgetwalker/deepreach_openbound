@@ -29,7 +29,10 @@ class PythonLanguageAdapter(LanguageAdapter):
             # Load the Python grammar
             PYTHON_LANGUAGE = Language(tspython.language())
             self.parser = Parser()
-            self.parser.set_language(PYTHON_LANGUAGE)
+            if hasattr(self.parser, "set_language"):
+                self.parser.set_language(PYTHON_LANGUAGE)
+            else:
+                self.parser.language = PYTHON_LANGUAGE
         except Exception as e:
             logger.error(f"Failed to initialize tree-sitter for Python: {e}")
             self.parser = None

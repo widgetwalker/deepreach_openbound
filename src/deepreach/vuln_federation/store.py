@@ -147,6 +147,9 @@ class VulnerabilityStore:
         """Clear all cached advisories."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM advisories")
+        # Run VACUUM outside of transaction
+        with sqlite3.connect(self.db_path) as conn:
+            conn.isolation_level = None
             conn.execute("VACUUM")
 
     def get_cache_stats(self) -> dict:
