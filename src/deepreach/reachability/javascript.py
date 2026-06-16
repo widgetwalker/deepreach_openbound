@@ -1,4 +1,4 @@
-"""JavaScript reachability analyzer using tree-sitter."""
+
 
 try:
     from tree_sitter import Language, Parser
