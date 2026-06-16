@@ -10,7 +10,9 @@ from ..models import DefSite, Edge
 class LanguageAdapter(Protocol):
     """Protocol for language-specific reachability adapters."""
 
-    def parse_file(self, file_path: str, content: str) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
+    def parse_file(
+        self, file_path: str, content: str
+    ) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
         """
         Parse a source file and extract definitions and edges.
 

@@ -9,6 +9,7 @@ from typing import List, Optional
 @dataclass(frozen=True)
 class Advisory:
     """Normalized vulnerability advisory."""
+
     cve_id: str
     ecosystem: str  # npm or pypi
     package: str
@@ -16,11 +17,14 @@ class Advisory:
     vulnerable_functions: Optional[List[str]]
     fix_version: Optional[str]
     severity: str  # critical, high, medium, low
+    summary: Optional[str] = None
+    details: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class ResolvedDep:
     """Resolved dependency with version."""
+
     ecosystem: str
     name: str
     version: str
@@ -31,6 +35,7 @@ class ResolvedDep:
 @dataclass(frozen=True)
 class DefSite:
     """Function or method definition site."""
+
     file: str
     line: int
     name: str
@@ -40,6 +45,7 @@ class DefSite:
 @dataclass(frozen=True)
 class Edge:
     """Call expression edge in call graph."""
+
     caller: DefSite
     callee_ref: str  # ImportPath resolved to string for simplicity
     line: int
@@ -48,6 +54,7 @@ class Edge:
 @dataclass(frozen=True)
 class Finding:
     """Vulnerability finding with reachability info."""
+
     advisory: Advisory
     reachable: bool
     confidence: str  # high, medium, low
@@ -58,6 +65,7 @@ class Finding:
 @dataclass(frozen=True)
 class ScanResult:
     """Complete scan result."""
+
     meta: dict
     summary: dict
     findings: List[Finding]

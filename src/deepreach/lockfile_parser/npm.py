@@ -4,7 +4,6 @@ import json
 from typing import List, Tuple, Optional
 
 
-
 class NpmLockfileParser:
     """Parser for NPM package-lock.json files."""
 
@@ -13,14 +12,16 @@ class NpmLockfileParser:
         try:
             data = json.loads(content)
             return (
-                isinstance(data, dict) and
-                "lockfileVersion" in data and
-                "packages" in data
+                isinstance(data, dict)
+                and "lockfileVersion" in data
+                and "packages" in data
             )
         except (json.JSONDecodeError, TypeError):
             return False
 
-    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
+    def parse(
+        self, content: str
+    ) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
         """Parse package-lock.json and return dependency tuples."""
         try:
             data = json.loads(content)

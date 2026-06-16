@@ -11,7 +11,7 @@ def get_logger(name: str = "deepreach") -> logging.Logger:
     if not logger.handlers:  # Avoid adding handlers multiple times
         handler = logging.StreamHandler(sys.stderr)
         formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)

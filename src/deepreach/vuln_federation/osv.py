@@ -23,14 +23,13 @@ class OSVAdapter(SourceAdapter):
     def get_name(self) -> str:
         return "OSV"
 
-    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:  # noqa: E501
+    def fetch_advisories(
+        self, ecosystem: str, package: str, version: str
+    ) -> List[Advisory]:  # noqa: E501
         """Fetch advisories for a specific package version from OSV.dev."""
         try:
             # Map our ecosystem names to OSV format
-            osv_ecosystem = {
-                "npm": "npm",
-                "pip": "PyPI"
-            }.get(ecosystem)
+            osv_ecosystem = {"npm": "npm", "pip": "PyPI"}.get(ecosystem)
 
             if not osv_ecosystem:
                 logger.warning(f"Unsupported ecosystem for OSV: {ecosystem}")
@@ -39,17 +38,10 @@ class OSVAdapter(SourceAdapter):
             # Query OSV.dev for advisories
             query = {
                 "version": version,
-                "package": {
-                    "name": package,
-                    "ecosystem": osv_ecosystem
-                }
+                "package": {"name": package, "ecosystem": osv_ecosystem},
             }
 
-            response = httpx.post(
-                f"{self.base_url}/query",
-                json=query,
-                timeout=10.0
-            )
+            response = httpx.post(f"{self.base_url}/query", json=query, timeout=10.0)
             response.raise_for_status()
 
             data = response.json()
@@ -66,7 +58,9 @@ class OSVAdapter(SourceAdapter):
             logger.error(f"Error fetching from OSV.dev: {e}")
             return []
 
-    def _parse_osv_vulnerability(self, vuln: dict, ecosystem: str) -> Optional[Advisory]:  # noqa: C901, E501
+    def _parse_osv_vulnerability(  # noqa: C901
+        self, vuln: dict, ecosystem: str
+    ) -> Optional[Advisory]:  # noqa: E501
         """Parse an OSV vulnerability into our Advisory format."""
         try:
             # Extract basic info
@@ -91,10 +85,9 @@ class OSVAdapter(SourceAdapter):
                     or not package_name
                 ):
                     pkg_info = aff.get("package", {})
-                    if pkg_info.get("ecosystem") == ({
-                        "npm": "npm",
-                        "pip": "PyPI"
-                    }.get(ecosystem)):
+                    if pkg_info.get("ecosystem") == (
+                        {"npm": "npm", "pip": "PyPI"}.get(ecosystem)
+                    ):
                         package_name = pkg_info.get("name", "")
 
                         # Get version range from ranges or events
@@ -102,8 +95,11 @@ class OSVAdapter(SourceAdapter):
                         if ranges:
                             # Take the first range for simplicity
                             range_info = ranges[0]
-                            version_range = range_info.get("introduced", "") + \
-                                           " - " + range_info.get("fixed", "")
+                            version_range = (
+                                range_info.get("introduced", "")
+                                + " - "
+                                + range_info.get("fixed", "")
+                            )
                         elif aff.get("versions"):
                             # Specific versions affected
                             versions = aff.get("versions", [])
@@ -133,6 +129,9 @@ class OSVAdapter(SourceAdapter):
             fix_version = None
             # Look for fixed version in ranges or database_specific
 
+            summary = vuln.get("summary")
+            details = vuln.get("details")
+
             return Advisory(
                 cve_id=cve_id,
                 ecosystem=ecosystem,
@@ -140,7 +139,9 @@ class OSVAdapter(SourceAdapter):
                 vulnerable_version_range=version_range,
                 vulnerable_functions=vulnerable_functions,
                 fix_version=fix_version,
-                severity=severity
+                severity=severity,
+                summary=summary,
+                details=details,
             )
 
         except Exception as e:

@@ -3,6 +3,7 @@
 try:
     from tree_sitter import Language, Parser
     import tree_sitter_python as tspython
+
     TREE_SITTER_AVAILABLE = True
 except ImportError:
     TREE_SITTER_AVAILABLE = False
@@ -29,12 +30,17 @@ class PythonLanguageAdapter(LanguageAdapter):
             # Load the Python grammar
             PYTHON_LANGUAGE = Language(tspython.language())
             self.parser = Parser()
-            self.parser.set_language(PYTHON_LANGUAGE)
+            if hasattr(self.parser, "set_language"):
+                self.parser.set_language(PYTHON_LANGUAGE)
+            else:
+                self.parser.language = PYTHON_LANGUAGE
         except Exception as e:
             logger.error(f"Failed to initialize tree-sitter for Python: {e}")
             self.parser = None
 
-    def parse_file(self, file_path: str, content: str) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
+    def parse_file(
+        self, file_path: str, content: str
+    ) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
         """Parse a Python file and extract definitions and calls."""
         if not self.parser or not TREE_SITTER_AVAILABLE:
             return [], []
@@ -55,8 +61,14 @@ class PythonLanguageAdapter(LanguageAdapter):
             logger.error(f"Error parsing Python file {file_path}: {e}")
             return [], []
 
-    def _traverse_node(self, node, content: str, file_path: str,
-                      definitions: List[DefSite], edges: List[Edge]) -> None:
+    def _traverse_node(
+        self,
+        node,
+        content: str,
+        file_path: str,
+        definitions: List[DefSite],
+        edges: List[Edge],
+    ) -> None:
         """Recursively traverse AST nodes to extract definitions and edges."""
         # Function definitions
         if node.type in ["function_definition", "async_function_definition"]:
@@ -64,18 +76,19 @@ class PythonLanguageAdapter(LanguageAdapter):
             name_node = node.child_by_field_name("name")
             if name_node:
                 name = self._get_node_text(name_node, content)
-                line_number = name_node.start_point[0] + 1  # Convert to 1-based line number  # noqa: E501
+                line_number = (
+                    name_node.start_point[0] + 1
+                )  # Convert to 1-based line number  # noqa: E501
 
                 # Check if exported (in Python, this would mean not starting with _)
                 # and is in __all__ if defined
                 exported = not name.startswith("_")  # Simplified
 
-                definitions.append(DefSite(
-                    file=file_path,
-                    line=line_number,
-                    name=name,
-                    exported=exported
-                ))
+                definitions.append(
+                    DefSite(
+                        file=file_path, line=line_number, name=name, exported=exported
+                    )
+                )
 
         # Class definitions
         elif node.type == "class_definition":
@@ -87,22 +100,27 @@ class PythonLanguageAdapter(LanguageAdapter):
                 # Classes are considered "exported" if not private
                 exported = not name.startswith("_")
 
-                definitions.append(DefSite(
-                    file=file_path,
-                    line=line_number,
-                    name=name,
-                    exported=exported
-                ))
+                definitions.append(
+                    DefSite(
+                        file=file_path, line=line_number, name=name, exported=exported
+                    )
+                )
 
         # Call expressions
         elif node.type == "call":
             # Get the function being called
             function_node = node.child_by_field_name("function")
             if function_node:
-                # Similar to JavaScript, we would need to resolve the function reference
-                # For now, placeholder
+                callee_ref = self._get_node_text(function_node, content)
                 line_number = node.start_point[0] + 1
-                pass
+
+                # Simplified: Use a generic caller site
+                caller = DefSite(
+                    file=file_path, line=0, name="<module>", exported=False
+                )
+                edges.append(
+                    Edge(caller=caller, callee_ref=callee_ref, line=line_number)
+                )
 
         # Recursively traverse children
         for child in node.children:
@@ -110,7 +128,7 @@ class PythonLanguageAdapter(LanguageAdapter):
 
     def _get_node_text(self, node, content: str) -> str:
         """Extract text content from a tree-sitter node."""
-        return content[node.start_byte:node.end_byte]
+        return content[node.start_byte : node.end_byte]
 
     def get_file_extensions(self) -> List[str]:
         return [".py"]
@@ -128,6 +146,6 @@ class PythonLanguageAdapter(LanguageAdapter):
             ".cache/",
             ".mypy_cache/",
             ".pytest_cache/",
-            "htmlcov/"
+            "htmlcov/",
         ]
         return any(pattern in file_path for pattern in ignored_patterns)

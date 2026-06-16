@@ -21,5 +21,5 @@ def stable_hash(data: Any) -> str:
         data = str(data)
 
     # JSON serialize with sorted keys and no whitespace
-    json_str = json.dumps(data, sort_keys=True, separators=(',', ':'))
-    return hashlib.sha256(json_str.encode('utf-8')).hexdigest()
+    json_str = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(json_str.encode("utf-8")).hexdigest()

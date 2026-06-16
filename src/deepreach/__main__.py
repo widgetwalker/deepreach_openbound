@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """DeepReach CLI entry point."""
+
 import sys
 from .cli import main
 
