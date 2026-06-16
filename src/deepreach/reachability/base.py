@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, List, Set, runtime_checkable
+from typing import Protocol, List, runtime_checkable
 from ..models import DefSite, Edge
 
 
@@ -10,7 +10,7 @@ from ..models import DefSite, Edge
 class LanguageAdapter(Protocol):
     """Protocol for language-specific reachability adapters."""
 
-    def parse_file(self, file_path: str, content: str) -> tuple[List[DefSite], List[Edge]]:
+    def parse_file(self, file_path: str, content: str) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
         """
         Parse a source file and extract definitions and edges.
 
