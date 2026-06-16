@@ -1,0 +1,10 @@
+NOTICE for DeepReach
+
+This project includes the following third-party components:
+
+- tree-sitter-languages: MIT License
+- httpx: MIT License
+- sqlite3: Public Domain
+- Other dependencies as listed in pyproject.toml
+
+See the LICENSE file for the DeepReach license.

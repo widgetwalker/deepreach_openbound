@@ -1,10 +1,12 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath('src'))
+
+sys.path.insert(0, os.path.abspath("src"))
 import unittest
 from deepreach.reachability.python_lang import PythonLanguageAdapter
 from deepreach.reachability.javascript import JavaScriptLanguageAdapter
 from deepreach.reachability.typescript import TypeScriptLanguageAdapter
+
 
 class TestReachability(unittest.TestCase):
     def test_python_language_adapter(self):
@@ -66,5 +68,6 @@ class Logger {
         adapter = TypeScriptLanguageAdapter()
         self.assertEqual(adapter.get_file_extensions(), [".ts", ".tsx"])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

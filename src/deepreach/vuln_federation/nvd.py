@@ -19,7 +19,9 @@ class NVDAdapter(SourceAdapter):
     def get_name(self) -> str:
         return "NVD"
 
-    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:  # noqa: E501
+    def fetch_advisories(
+        self, ecosystem: str, package: str, version: str
+    ) -> List[Advisory]:  # noqa: E501
         """Fetch advisories for a specific package version from NVD."""
         # NVD integration is feature-flagged and not implemented in v1
         # This is a placeholder for future implementation

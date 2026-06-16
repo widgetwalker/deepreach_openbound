@@ -1,11 +1,13 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath('src'))
+
+sys.path.insert(0, os.path.abspath("src"))
 import unittest
 import tempfile
 from pathlib import Path
 from deepreach.models import Advisory
 from deepreach.vuln_federation.store import VulnerabilityStore
+
 
 class TestVulnerabilityStore(unittest.TestCase):
     def setUp(self):
@@ -16,6 +18,7 @@ class TestVulnerabilityStore(unittest.TestCase):
     def tearDown(self):
         del self.store
         import gc
+
         gc.collect()
         try:
             os.close(self.db_fd)
@@ -34,7 +37,7 @@ class TestVulnerabilityStore(unittest.TestCase):
             vulnerable_version_range="<2.3.3",
             vulnerable_functions=["render_template"],
             fix_version="2.3.3",
-            severity="high"
+            severity="high",
         )
         self.store.upsert_advisory(advisory, source="OSV")
 
@@ -62,7 +65,7 @@ class TestVulnerabilityStore(unittest.TestCase):
             vulnerable_version_range="<2.3.3",
             vulnerable_functions=["render_template"],
             fix_version="2.3.3",
-            severity="high"
+            severity="high",
         )
         self.store.upsert_advisory(advisory, source="OSV")
 
@@ -74,5 +77,6 @@ class TestVulnerabilityStore(unittest.TestCase):
         stats_cleared = self.store.get_cache_stats()
         self.assertEqual(stats_cleared["total_advisories"], 0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

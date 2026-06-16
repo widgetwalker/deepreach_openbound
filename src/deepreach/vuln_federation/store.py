@@ -29,6 +29,8 @@ class VulnerabilityStore:
                     vulnerable_functions TEXT,  -- JSON array
                     fix_version TEXT,
                     severity TEXT NOT NULL,
+                    summary TEXT,
+                    details TEXT,
                     source TEXT NOT NULL,  -- OSV, GHSA, NVD
                     raw_data TEXT,  -- JSON for debugging
                     cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -64,36 +66,55 @@ class VulnerabilityStore:
     ) -> None:
         """Insert or update an advisory in the database."""
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                INSERT OR REPLACE INTO advisories
-                (cve_id, ecosystem, package, version_range, vulnerable_functions,
-                 fix_version, severity, source, raw_data, cached_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (
-                advisory.cve_id,
-                advisory.ecosystem,
-                advisory.package,
-                advisory.vulnerable_version_range,
-                json.dumps(advisory.vulnerable_functions)
-                if advisory.vulnerable_functions
-                else None,
-                advisory.fix_version,
-                advisory.severity,
-                source,
-                json.dumps(raw_data) if raw_data else None
-            ))
+            conn.execute(
+                """
+                INSERT INTO advisories (
+                    cve_id, ecosystem, package, version_range,
+                    vulnerable_functions, fix_version, severity,
+                    summary, details, source, raw_data
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(
+                    cve_id, ecosystem, package, version_range, source
+                ) DO UPDATE SET
+                    vulnerable_functions = excluded.vulnerable_functions,
+                    fix_version = excluded.fix_version,
+                    severity = excluded.severity,
+                    summary = excluded.summary,
+                    details = excluded.details,
+                    raw_data = excluded.raw_data,
+                    cached_at = CURRENT_TIMESTAMP
+            """,
+                (
+                    advisory.cve_id,
+                    advisory.ecosystem,
+                    advisory.package,
+                    advisory.vulnerable_version_range,
+                    json.dumps(advisory.vulnerable_functions)
+                    if advisory.vulnerable_functions
+                    else None,
+                    advisory.fix_version,
+                    advisory.severity,
+                    advisory.summary,
+                    advisory.details,
+                    source,
+                    json.dumps(raw_data) if raw_data else None,
+                ),
+            )
 
     def get_advisories(self, ecosystem: str, package: str) -> List[Advisory]:
         """Get all advisories for a specific ecosystem and package."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT cve_id, ecosystem, package, version_range, vulnerable_functions,
-                       fix_version, severity
+                       fix_version, severity, summary, details
                 FROM advisories
                 WHERE ecosystem = ? AND package = ?
                 ORDER BY severity DESC, cve_id
-            """, (ecosystem, package))
+            """,
+                (ecosystem, package),
+            )
 
             advisories = []
             for row in cursor:
@@ -108,7 +129,9 @@ class VulnerabilityStore:
                         else None
                     ),
                     fix_version=row["fix_version"],
-                    severity=row["severity"]
+                    severity=row["severity"],
+                    summary=row["summary"],
+                    details=row["details"],
                 )
                 advisories.append(advisory)
 
@@ -118,13 +141,16 @@ class VulnerabilityStore:
         """Get advisory by CVE ID."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT cve_id, ecosystem, package, version_range, vulnerable_functions,
-                       fix_version, severity
+                       fix_version, severity, summary, details
                 FROM advisories
                 WHERE cve_id = ?
                 LIMIT 1
-            """, (cve_id,))
+            """,
+                (cve_id,),
+            )
 
             row = cursor.fetchone()
             if row:
@@ -139,7 +165,9 @@ class VulnerabilityStore:
                         else None
                     ),
                     fix_version=row["fix_version"],
-                    severity=row["severity"]
+                    severity=row["severity"],
+                    summary=row["summary"],
+                    details=row["details"],
                 )
             return None
 
@@ -169,5 +197,5 @@ class VulnerabilityStore:
                 "total_advisories": row[0] if row else 0,
                 "unique_packages": row[1] if row else 0,
                 "oldest_entry": row[2] if row else None,
-                "newest_entry": row[3] if row else None
+                "newest_entry": row[3] if row else None,
             }

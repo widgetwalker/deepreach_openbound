@@ -26,14 +26,13 @@ class GHSAAdapter(SourceAdapter):
     def get_name(self) -> str:
         return "GHSA"
 
-    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:  # noqa: E501
+    def fetch_advisories(
+        self, ecosystem: str, package: str, version: str
+    ) -> List[Advisory]:  # noqa: E501
         """Fetch advisories for a specific package version from GHSA."""
         try:
             # Map our ecosystem names to GHSA format
-            ghsa_ecosystem = {
-                "npm": "npm",
-                "pip": "pip"
-            }.get(ecosystem)
+            ghsa_ecosystem = {"npm": "npm", "pip": "pip"}.get(ecosystem)
 
             if not ghsa_ecosystem:
                 logger.warning(f"Unsupported ecosystem for GHSA: {ecosystem}")
@@ -51,7 +50,10 @@ class GHSAAdapter(SourceAdapter):
             # For this implementation, we'll note this limitation and return empty
             # A full implementation would use GraphQL or maintain periodic sync
 
-            logger.warning("GHSA adapter fetch_advisories not fully implemented - returning empty list")  # noqa: E501
+            logger.warning(
+                "GHSA adapter fetch_advisories not fully implemented - "
+                "returning empty list"
+            )
             return []
 
         except Exception as e:

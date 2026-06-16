@@ -11,7 +11,9 @@ from ..models import Advisory
 class SourceAdapter(Protocol):
     """Protocol for vulnerability source adapters."""
 
-    def fetch_advisories(self, ecosystem: str, package: str, version: str) -> List[Advisory]:  # noqa: E501
+    def fetch_advisories(
+        self, ecosystem: str, package: str, version: str
+    ) -> List[Advisory]:  # noqa: E501
         """
         Fetch advisories for a specific package version.
 

@@ -9,7 +9,9 @@ from typing import Protocol, List, Tuple, runtime_checkable, Optional
 class EcosystemAdapter(Protocol):
     """Protocol for lockfile ecosystem adapters."""
 
-    def parse(self, content: str) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
+    def parse(
+        self, content: str
+    ) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
         """
         Parse lockfile content and return dependency tuples.
 
