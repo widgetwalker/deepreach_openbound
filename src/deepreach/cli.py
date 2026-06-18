@@ -320,24 +320,14 @@ def _scan_command(args) -> int:  # noqa: C901
         return f"\033[{code}m{text}\033[0m" if use_color else text
 
     RED = "31;1"
-    YELLOW = "33"
-    CYAN = "36"
-    GREEN = "32"
-    GREY = "90"
-    BOLD = "1"
 
-    SEVERITY_COLOR = {
-        "CRITICAL": "35;1",  # magenta bold
-        "HIGH": "31;1",  # red bold
-        "MEDIUM": "33",  # yellow
-        "LOW": "34",  # blue
-        "UNKNOWN": "90",  # grey
-    }
 
     # ── Collect findings ──────────────────────────────────────────────────────
     import json as _json
+    from .models import Finding, ScanResult
 
     findings = []
+    scan_findings: List[Finding] = []
     fail_on = getattr(args, "fail_on", None)
     severity_order = ["critical", "high", "medium", "low"]
 
@@ -387,8 +377,29 @@ def _scan_command(args) -> int:  # noqa: C901
                 }
             )
 
+            # Construct type-safe Finding object for modular reporting
+            call_path = [edge.caller for edge in reachable_edges]
+            finding_obj = Finding(
+                advisory=adv,
+                reachable=is_reachable,
+                confidence="high" if is_reachable else "low",
+                call_path=call_path,
+                fix_version=adv.fix_version,
+            )
+            scan_findings.append(finding_obj)
+
     reachable_findings = [f for f in findings if f["reachable"]]
     reachable_count = len(reachable_findings)
+
+    scan_result = ScanResult(
+        meta={
+            "target": str(target_path),
+            "total_dependencies": len(dependencies),
+            "vulnerable_packages": len(vulnerable_deps),
+        },
+        summary={},
+        findings=scan_findings,
+    )
 
     # ── Output: JSON ──────────────────────────────────────────────────────────
     output_format = getattr(args, "format", "table")
@@ -467,70 +478,8 @@ def _scan_command(args) -> int:  # noqa: C901
 
     else:
         # ── Output: Table (default) ───────────────────────────────────────────
-        print("\n" + c(BOLD, "=" * 80))
-        print(c(BOLD, "  DEEPREACH SCAN REPORT"))
-        print(c(BOLD, "=" * 80))
-
-        display = findings if show_all else findings  # always show all in table
-        for finding in display:
-            sev = str(finding.get("severity", "UNKNOWN"))
-            cve_id = str(finding.get("cve_id", ""))
-            package = str(finding.get("package", ""))
-            version = str(finding.get("version", ""))
-            is_reachable = bool(finding.get("reachable", False))
-            traces = cast(List[dict], finding.get("traces") or [])
-            summary = str(finding.get("summary") or "")
-            details = str(finding.get("details") or "")
-            fix_version = str(finding.get("fix_version") or "")
-
-            sev_col = SEVERITY_COLOR.get(sev, GREY)
-            reach_text = (
-                c(RED, "● REACHABLE") if is_reachable else c(GREY, "○ unreachable")  # noqa: E501
-            )
-            print(
-                f"\n  {c(sev_col, f'[{sev}]')}  "
-                f"{c(BOLD, cve_id)}  in  "
-                f"{c(CYAN, f'{package}@{version}')}"
-            )
-            print(f"  Reachability : {reach_text}")
-
-            if traces:
-                for trace in traces[:3]:
-                    print(
-                        f"  {c(GREY, '→')} "
-                        f"{c(YELLOW, str(trace.get('file', '')))}:"
-                        f"{trace.get('line', 1)}  "
-                        f"{c(GREY, str(trace.get('call', '')))}"
-                    )
-                if len(traces) > 3:
-                    print(
-                        f"  {c(GREY, '→ ...')} "
-                        f"and {len(traces) - 3} more locations"
-                    )
-
-            if summary:
-                print(f"  Summary      : {summary}")
-            if details:
-                preview = details[:160] + (
-                    "…" if len(details) > 160 else ""
-                )
-                print(f"  Details      : {c(GREY, preview)}")
-            if fix_version:
-                print(
-                    f"  Fix          : upgrade to "
-                    f"{c(GREEN, fix_version)}"
-                )
-            print(c(GREY, "  " + "─" * 78))
-
-        # Summary bar
-        total = len(findings)
-        print(f"\n{c(BOLD, 'Summary')}:")
-        print(
-            f"  {len(dependencies)} dependencies scanned  │  "
-            f"{len(vulnerable_deps)} vulnerable packages  │  "
-            f"{c(RED, str(reachable_count) + ' reachable CVEs') if reachable_count else c(GREEN, '0 reachable CVEs')} "  # noqa: E501
-            f"out of {total} total"
-        )
+        from .report.table import generate_table_report
+        print(generate_table_report(scan_result, show_unreachable=show_all), end="")
 
     # ── --fail-on gate ────────────────────────────────────────────────────────
     if fail_on:
