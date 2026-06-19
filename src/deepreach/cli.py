@@ -396,6 +396,7 @@ def _scan_command(args) -> int:  # noqa: C901
             "target": str(target_path),
             "total_dependencies": len(dependencies),
             "vulnerable_packages": len(vulnerable_deps),
+            "version": __version__,
         },
         summary={},
         findings=scan_findings,
@@ -406,18 +407,20 @@ def _scan_command(args) -> int:  # noqa: C901
     show_all = getattr(args, "all", False)
 
     if output_format == "json":
-        report = {
-            "tool": "deepreach",
-            "target": str(target_path),
-            "summary": {
-                "total_dependencies": len(dependencies),
-                "vulnerable_packages": len(vulnerable_deps),
-                "reachable_cves": reachable_count,
-                "total_cves": len(findings),
-            },
-            "findings": findings if show_all else reachable_findings,
-        }
-        print(_json.dumps(report, indent=2))
+        # Filter findings if --all / show_all is False
+        if not show_all:
+            filtered_findings = [f for f in scan_findings if f.reachable]
+            json_scan_result = ScanResult(
+                meta=scan_result.meta,
+                summary=scan_result.summary,
+                findings=filtered_findings,
+            )
+        else:
+            json_scan_result = scan_result
+
+        from .report.json_fmt import generate_json_report
+        print(generate_json_report(json_scan_result), end="")
+
 
     elif output_format == "sarif":
         # Minimal SARIF 2.1.0 output
