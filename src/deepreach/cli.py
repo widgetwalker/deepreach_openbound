@@ -3,7 +3,7 @@
 import argparse
 import logging
 import sys
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from . import __version__
 from .log import get_logger
@@ -323,7 +323,6 @@ def _scan_command(args) -> int:  # noqa: C901
 
 
     # ── Collect findings ──────────────────────────────────────────────────────
-    import json as _json
     from .models import Finding, ScanResult
 
     findings = []
@@ -423,61 +422,20 @@ def _scan_command(args) -> int:  # noqa: C901
 
 
     elif output_format == "sarif":
-        # Minimal SARIF 2.1.0 output
-        rules: List[dict] = []
-        results = []
-        for finding in (findings if show_all else reachable_findings):
-            rule_id = str(finding.get("cve_id", ""))
-            summary = str(finding.get("summary") or "")
-            details = str(finding.get("details") or "")
-            is_reachable = bool(finding.get("reachable", False))
-            package = str(finding.get("package", ""))
-            version = str(finding.get("version", ""))
-            traces = cast(List[dict], finding.get("traces") or [])
+        # Filter findings if --all / show_all is False
+        if not show_all:
+            filtered_findings = [f for f in scan_findings if f.reachable]
+            sarif_scan_result = ScanResult(
+                meta=scan_result.meta,
+                summary=scan_result.summary,
+                findings=filtered_findings,
+            )
+        else:
+            sarif_scan_result = scan_result
 
-            if not any(r["id"] == rule_id for r in rules):
-                rules.append({
-                    "id": rule_id,
-                    "name": rule_id,
-                    "shortDescription": {"text": summary or rule_id},
-                    "help": {"text": details or ""},
-                })
+        from .report.sarif import generate_sarif_report
+        print(generate_sarif_report(sarif_scan_result), end="")
 
-            trace_list = traces or [
-                {"file": "unknown", "line": 1, "call": ""}
-            ]
-            for trace in trace_list:
-                results.append({
-                    "ruleId": rule_id,
-                    "level": "error" if is_reachable else "warning",
-                    "message": {
-                        "text": f"{rule_id} in {package}@{version} — {summary}"
-                    },
-                    "locations": [{
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": str(trace.get("file", ""))},
-                            "region": {"startLine": trace.get("line") or 1},
-                        }
-                    }],
-                })
-        sarif = {
-            "version": "2.1.0",
-            "$schema": (
-                "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/"
-                "master/Schemata/sarif-schema-2.1.0.json"
-            ),
-            "runs": [{
-                "tool": {
-                    "driver": {
-                        "name": "deepreach",
-                        "version": __version__,
-                        "rules": rules,
-                    }
-                },
-                "results": results,
-            }],
-        }
-        print(_json.dumps(sarif, indent=2))
 
     else:
         # ── Output: Table (default) ───────────────────────────────────────────
