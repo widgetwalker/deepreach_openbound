@@ -1,6 +1,5 @@
 # DeepReach
 
-[![CI Status](https://github.com/widgetwalker/deepreach_openbound/actions/workflows/ci.yml/badge.svg)](https://github.com/widgetwalker/deepreach_openbound/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
 
@@ -12,12 +11,14 @@
 
 ## ✨ Quick Start
 
+### Local installation
+
 ```bash
 # Clone and install
 git clone https://github.com/widgetwalker/deepreach_openbound
 cd openbound
 python -m venv .venv && .venv/Scripts/activate
-pip install -r requirements.txt   # or: pip install -e .
+pip install -e .
 
 # Point it at any Node.js or Python project — recursively scans all subdirectories
 python -m deepreach scan /path/to/your/project
@@ -29,6 +30,17 @@ python -m deepreach scan /path/to/project --format sarif
 # Fail CI if a REACHABLE high-severity CVE is found
 python -m deepreach scan /path/to/project --fail-on high
 ```
+
+### Run with Docker
+
+```bash
+# Build the hardened minimal Docker image
+docker build -t deepreach .
+
+# Scan a local project directory by mounting it as a volume
+docker run --rm -v /path/to/your/project:/workspace deepreach scan /workspace
+```
+
 
 ---
 
@@ -75,10 +87,17 @@ src/deepreach/
 │   ├── osv.py              # OSV.dev API adapter
 │   ├── ghsa.py             # GitHub Security Advisories adapter (stub)
 │   └── store.py            # SQLite-backed advisory cache
-└── reachability/
-    ├── javascript.py       # JS/TS tree-sitter call-graph extractor
-    └── python_lang.py      # Python tree-sitter call-graph extractor
+├── reachability/
+│   ├── javascript.py       # JS/TS tree-sitter call-graph extractor
+│   └── python_lang.py      # Python tree-sitter call-graph extractor
+└── report/
+    ├── __init__.py         # Package init
+    ├── table.py            # Text table report generator
+    ├── json_fmt.py         # Deterministic JSON report generator
+    ├── sarif.py            # Deterministic SARIF report generator
+    └── explain.py          # Detailed call path explanation generator
 ```
+
 
 ---
 
