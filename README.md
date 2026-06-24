@@ -5,7 +5,7 @@
 
 **DeepReach** is a FOSS command-line tool that scans Node.js and Python projects for **reachable** CVEs.
 
-> Unlike `npm audit` or `pip-audit`, DeepReach doesn't just flag every vulnerable package in your tree — it performs **AST-level static analysis** to determine if the vulnerable code is actually *called* by your application. This eliminates false positives and alert fatigue.
+> Unlike `npm audit` or `pip-audit`, DeepReach doesn't just flag every vulnerable package in your tree - it performs **AST-level static analysis** to determine if the vulnerable code is actually *called* by your application. This eliminates false positives and alert fatigue.
 
 ---
 
