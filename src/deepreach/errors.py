@@ -2,11 +2,11 @@
 
 
 class DepReachError(Exception):
-    """Base exception for DeepReach."""
+    """Base exception for all DeepReach errors."""
 
 
 class LockfileParseError(DepReachError):
-    """Raised when lockfile cannot be parsed."""
+    """Raised when a lockfile cannot be parsed."""
 
     def __init__(self, message: str, suggestion: str = ""):
         super().__init__(f"{message}. {suggestion}".strip())
@@ -14,19 +14,19 @@ class LockfileParseError(DepReachError):
 
 
 class OSVFetchError(DepReachError):
-    """Raised when OSV.dev advisory fetch fails."""
+    """Raised when an OSV.dev advisory fetch fails."""
 
 
 class GHSAFetchError(DepReachError):
-    """Raised when GitHub Security Advisory fetch fails."""
+    """Raised when a GitHub Security Advisory fetch fails."""
 
 
 class NVDFetchError(DepReachError):
-    """Raised when NVD advisory fetch fails."""
+    """Raised when an NVD advisory fetch fails."""
 
 
 class AdvisoryFetchError(DepReachError):
-    """Raised when advisory federation fails."""
+    """Raised when advisory federation fails across all sources."""
 
 
 class ResolverError(DepReachError):

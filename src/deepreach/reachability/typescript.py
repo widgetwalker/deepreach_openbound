@@ -1,17 +1,12 @@
 """TypeScript reachability analyzer using tree-sitter."""
 
-from typing import List
+from __future__ import annotations
 
-# TypeScript uses the same tree-sitter grammar as JavaScript in many cases
-# For now, we'll reuse the JavaScript adapter
 from .javascript import JavaScriptLanguageAdapter
 
 
 class TypeScriptLanguageAdapter(JavaScriptLanguageAdapter):
-    """TypeScript language adapter - reuses JavaScript grammar for now."""
+    """TypeScript language adapter reusing the JavaScript grammar."""
 
-    def get_file_extensions(self) -> List[str]:
+    def get_file_extensions(self) -> list[str]:
         return [".ts", ".tsx"]
-
-    # Note: In a full implementation, we would use tree-sitter-typescript
-    # which provides more accurate TypeScript-specific parsing

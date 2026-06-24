@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, List, Tuple, runtime_checkable, Optional
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -11,20 +11,10 @@ class EcosystemAdapter(Protocol):
 
     def parse(
         self, content: str
-    ) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
-        """
-        Parse lockfile content and return dependency tuples.
-
-        Returns:
-            List of (ecosystem, name, version, parent_name, dep_path) tuples
-        """
+    ) -> list[tuple[str, str, str, str | None, list[str]]]:
+        """Parse lockfile content and return dependency tuples."""
         ...
 
     def detect(self, content: str) -> bool:
-        """
-        Detect if this adapter can parse the given lockfile content.
-
-        Returns:
-            True if adapter can parse the content, False otherwise
-        """
+        """Detect if this adapter can parse the given lockfile content."""
         ...

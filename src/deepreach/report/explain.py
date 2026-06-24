@@ -1,13 +1,13 @@
-"""Explain format report generator for DeepReach."""
+"""Explain-format report for a single DeepReach finding."""
 
-from typing import List
+from __future__ import annotations
+
 from ..models import Finding
 
 
-def generate_explain_report(findings: List[Finding], cve_id: str) -> str:
-    """Generate a detailed explanation of a specific CVE finding."""
-    # Find the specific CVE
-    target_finding = None
+def generate_explain_report(findings: list[Finding], cve_id: str) -> str:
+    """Render a human-readable deep-dive for one CVE."""
+    target_finding: Finding | None = None
     for finding in findings:
         if finding.advisory.cve_id == cve_id:
             target_finding = finding
@@ -16,7 +16,7 @@ def generate_explain_report(findings: List[Finding], cve_id: str) -> str:
     if not target_finding:
         return f"CVE {cve_id} not found in scan results.\n"
 
-    lines = []
+    lines: list[str] = []
     lines.append(f"Explanation for {target_finding.advisory.cve_id}")
     lines.append("=" * 50)
     lines.append("")
@@ -30,12 +30,9 @@ def generate_explain_report(findings: List[Finding], cve_id: str) -> str:
         f"Fix version: "
         f"{target_finding.advisory.fix_version or 'Not available'}"
     )
-    lines.append(
-        f"Severity: "
-        f"{getattr(target_finding.advisory, 'severity', 'unknown')}"
-    )
+    lines.append(f"Severity: {target_finding.advisory.severity.value}")
     lines.append(f"Reachable: {'YES' if target_finding.reachable else 'NO'}")
-    lines.append(f"Confidence: {target_finding.confidence}")
+    lines.append(f"Confidence: {target_finding.confidence.value}")
     lines.append("")
 
     if target_finding.reachable and target_finding.call_path:

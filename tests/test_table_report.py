@@ -3,7 +3,14 @@ import os
 
 sys.path.insert(0, os.path.abspath("src"))
 import unittest
-from deepreach.models import Advisory, Finding, ScanResult, DefSite
+from deepreach.models import (
+    Advisory,
+    Confidence,
+    DefSite,
+    Finding,
+    ScanResult,
+    Severity,
+)
 from deepreach.report.table import generate_table_report
 
 
@@ -16,7 +23,7 @@ class TestTableReport(unittest.TestCase):
             vulnerable_version_range="<2.31.0",
             vulnerable_functions=["send"],
             fix_version="2.31.0",
-            severity="critical",
+            severity=Severity.CRITICAL,
         )
         self.advisory_unreachable = Advisory(
             cve_id="CVE-2026-2222",
@@ -25,7 +32,7 @@ class TestTableReport(unittest.TestCase):
             vulnerable_version_range="<4.19.0",
             vulnerable_functions=["serve"],
             fix_version="4.19.0",
-            severity="high",
+            severity=Severity.HIGH,
         )
         self.def_site1 = DefSite(file="app.py", line=10, name="main", exported=False)
         self.def_site2 = DefSite(file="lib.py", line=20, name="helper", exported=False)
@@ -33,14 +40,14 @@ class TestTableReport(unittest.TestCase):
         self.finding_reachable = Finding(
             advisory=self.advisory_reachable,
             reachable=True,
-            confidence="high",
+            confidence=Confidence.HIGH,
             call_path=[self.def_site1, self.def_site2],
             fix_version="2.31.0",
         )
         self.finding_unreachable = Finding(
             advisory=self.advisory_unreachable,
             reachable=False,
-            confidence="low",
+            confidence=Confidence.LOW,
             call_path=[],
             fix_version="4.19.0",
         )
@@ -57,27 +64,22 @@ class TestTableReport(unittest.TestCase):
 
     def test_generate_table_report_reachable_only(self):
         report = generate_table_report(self.scan_result, show_unreachable=False)
-        # Should contain reachable advisory details
         self.assertIn("CVE-2026-1111", report)
         self.assertIn("requests", report)
         self.assertIn("main → helper", report)
 
-        # Should NOT contain unreachable advisory details
         self.assertNotIn("CVE-2026-2222", report)
         self.assertNotIn("express", report)
 
-        # Summary verification
         self.assertIn("Summary: 1 reachable, 1 unreachable vulnerabilities", report)
 
     def test_generate_table_report_show_all(self):
         report = generate_table_report(self.scan_result, show_unreachable=True)
-        # Should contain both details
         self.assertIn("CVE-2026-1111", report)
         self.assertIn("requests", report)
         self.assertIn("CVE-2026-2222", report)
         self.assertIn("express", report)
 
-        # Summary verification
         self.assertIn("Summary: 1 reachable, 1 unreachable vulnerabilities", report)
 
     def test_generate_table_report_no_findings(self):

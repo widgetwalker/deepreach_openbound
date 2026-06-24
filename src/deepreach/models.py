@@ -1,40 +1,58 @@
-"""Data models for DeepReach."""
+"""Domain models shared across every DeepReach module."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, field
+from enum import Enum
+
+
+class Severity(str, Enum):
+    """Maps directly to CVSS qualitative buckets used by OSV, GHSA, and NVD."""
+
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNKNOWN = "unknown"
+
+
+class Confidence(str, Enum):
+    """Reflects how precisely the reachability analysis could trace the call path."""
+
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 @dataclass(frozen=True)
 class Advisory:
-    """Normalized vulnerability advisory."""
+    """Normalised vulnerability advisory from any federated source."""
 
     cve_id: str
-    ecosystem: str  # npm or pypi
+    ecosystem: str
     package: str
     vulnerable_version_range: str
-    vulnerable_functions: Optional[List[str]]
-    fix_version: Optional[str]
-    severity: str  # critical, high, medium, low
-    summary: Optional[str] = None
-    details: Optional[str] = None
+    vulnerable_functions: list[str] | None
+    fix_version: str | None
+    severity: Severity
+    summary: str | None = None
+    details: str | None = None
 
 
 @dataclass(frozen=True)
 class ResolvedDep:
-    """Resolved dependency with version."""
+    """A concrete dependency pinned to a specific version."""
 
     ecosystem: str
     name: str
     version: str
-    parent_name: Optional[str]
-    dep_path: List[str]
+    parent_name: str | None
+    dep_path: list[str]
 
 
 @dataclass(frozen=True)
 class DefSite:
-    """Function or method definition site."""
+    """A function or class definition location in source code."""
 
     file: str
     line: int
@@ -44,28 +62,37 @@ class DefSite:
 
 @dataclass(frozen=True)
 class Edge:
-    """Call expression edge in call graph."""
+    """A call expression linking a caller to a callee reference."""
 
     caller: DefSite
-    callee_ref: str  # ImportPath resolved to string for simplicity
+    callee_ref: str
     line: int
 
 
 @dataclass(frozen=True)
 class Finding:
-    """Vulnerability finding with reachability info."""
+    """A single vulnerability verdict with reachability evidence."""
 
     advisory: Advisory
     reachable: bool
-    confidence: str  # high, medium, low
-    call_path: List[DefSite]
-    fix_version: Optional[str]
+    confidence: Confidence
+    call_path: list[DefSite]
+    fix_version: str | None
+
+
+@dataclass(frozen=True)
+class ScanMetrics:
+    """Resource usage captured during a scan."""
+
+    duration_ms: float = 0.0
+    peak_rss_bytes: int = 0
 
 
 @dataclass(frozen=True)
 class ScanResult:
-    """Complete scan result."""
+    """Complete output of a scan run."""
 
-    meta: dict
-    summary: dict
-    findings: List[Finding]
+    meta: dict[str, object]
+    summary: dict[str, object]
+    findings: list[Finding]
+    metrics: ScanMetrics = field(default_factory=ScanMetrics)
