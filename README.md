@@ -9,7 +9,7 @@
 
 ---
 
-## ✨ Quick Start
+## Quick Start
 
 ### Local installation
 
@@ -44,7 +44,7 @@ docker run --rm -v /path/to/your/project:/workspace deepreach scan /workspace
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 | Feature | Details |
 |---|---|
@@ -59,7 +59,7 @@ docker run --rm -v /path/to/your/project:/workspace deepreach scan /workspace
 
 ---
 
-## 💡 Why Reachability Matters
+## Why Reachability Matters
 
 Standard dependency scanners report *every* vulnerable version in your dependency tree - including transitive deps you don't even call. This leads to hundreds of false-positive alerts for vulnerabilities that are literally unreachable in your code.
 
@@ -73,7 +73,7 @@ deepreach   →   3 REACHABLE CVEs    (these are the ones to fix TODAY)
 
 ---
 
-## 🛠️ Architecture
+## Architecture
 
 ```
 src/deepreach/
@@ -101,7 +101,7 @@ src/deepreach/
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run the full test suite
@@ -119,7 +119,7 @@ DeepReach ships with an intentionally vulnerable Node.js + Python sample app in 
 
 ---
 
-## 📤 Output Formats
+## Output Formats
 
 ### Table (default)
 Color-coded human-readable output with reachability traces pointing to exact file + line numbers.
@@ -144,7 +144,7 @@ Standard [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1
 
 ---
 
-## 🔧 Extending DeepReach
+## Extending DeepReach
 
 Adding a new ecosystem (e.g. Dart, Rust/Cargo, Java/Maven) requires:
 
@@ -156,13 +156,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for a full guide.
 
 ---
 
-## 📄 License
+## License
 
 DeepReach is licensed under the **MIT License**.  
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) for full details.
 
 ---
 
-## 🔒 Security
+## Security
 
 Found a vulnerability in DeepReach itself? Please read our [SECURITY.md](SECURITY.md) for responsible disclosure guidelines.
+
+---
+
+## Acknowledgements
+
+This project was built with the assistance of Antigravity, an AI pair programmer by Google DeepMind.

@@ -1,6 +1,6 @@
 # Contributing to DeepReach
 
-Thank you for your interest in contributing to DeepReach! 🎉  
+Thank you for your interest in contributing to DeepReach!  
 We welcome contributions of all kinds: bug reports, new features, documentation improvements, and more.
 
 ---
@@ -119,4 +119,4 @@ See [`javascript.py`](src/deepreach/reachability/javascript.py) for reference.
 
 ---
 
-We look forward to your contributions! 🚀
+We look forward to your contributions!

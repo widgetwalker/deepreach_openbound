@@ -196,7 +196,7 @@ def _scan_command(args: argparse.Namespace) -> int:
         use_color = not getattr(args, "no_color", False) and sys.stdout.isatty()
         if output_format == "table":
             msg = (
-                f"\n✖  Failing: reachable {fail_on.upper()} CVE found "
+                f"\nFAIL: Failing: reachable {fail_on.upper()} CVE found "
                 f"(--fail-on {fail_on})"
             )
             print(_colorize("31;1", msg) if use_color else msg)

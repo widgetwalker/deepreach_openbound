@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| `0.x`   | ✅ Current release  |
+| `0.x`   | Yes (Current release)  |
 
 ---
 
