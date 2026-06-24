@@ -84,7 +84,3 @@ cython_debug
 
 # DeepReach specific
 .cache/deepreach/
-
-# Local draft notes & scratchpad designs
-docs/MASTER_PROMPT.md
-docs/BUILD_PLAN.md
