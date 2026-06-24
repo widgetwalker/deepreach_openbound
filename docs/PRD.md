@@ -1,4 +1,4 @@
-# DeepReach — Product Requirements Document (PRD)
+# DeepReach - Product Requirements Document (PRD)
 
 **Owner:** UNBOUND '26 Team · **Track:** Open Innovation · **License:** MIT · **Status:** v0.1.0-draft
 

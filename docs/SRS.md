@@ -1,4 +1,4 @@
-# DeepReach — Software Requirements Specification (SRS)
+# DeepReach - Software Requirements Specification (SRS)
 
 **Version:** 0.1.0-draft · **Status:** binding for v1 implementation · **License:** MIT
 
@@ -14,13 +14,13 @@ The system has **no** web server, **no** database server, **no** message queue, 
 
 ## 2. Normative references
 
-- **RFC 2119** — Key words for use in RFCs.
-- **OSV Schema v1.6.x** — open source vulnerability data interchange format.
-- **SARIF 2.1.0** — Static Analysis Results Interchange Format.
-- **PEP 440** — Python version specifiers.
-- **SemVer 2.0** — semantic versioning for the public CLI.
-- **SPDX License List** — third-party licence identification.
-- **CycloneDX 1.5** (informative) — SBOM format, planned v1.1.
+- **RFC 2119** - Key words for use in RFCs.
+- **OSV Schema v1.6.x** - open source vulnerability data interchange format.
+- **SARIF 2.1.0** - Static Analysis Results Interchange Format.
+- **PEP 440** - Python version specifiers.
+- **SemVer 2.0** - semantic versioning for the public CLI.
+- **SPDX License List** - third-party licence identification.
+- **CycloneDX 1.5** (informative) - SBOM format, planned v1.1.
 
 ## 3. Definitions
 

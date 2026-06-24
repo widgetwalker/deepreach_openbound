@@ -37,10 +37,10 @@ We welcome contributions of all kinds: bug reports, new features, documentation 
 ## Development Setup
 
 The project uses:
-- **`ruff`** — linting and formatting
-- **`pytest`** — testing
-- **`mypy`** — static type checking
-- **`tree-sitter`** — AST parsing
+- **`ruff`** - linting and formatting
+- **`pytest`** - testing
+- **`mypy`** - static type checking
+- **`tree-sitter`** - AST parsing
 
 ```bash
 # Run the linter

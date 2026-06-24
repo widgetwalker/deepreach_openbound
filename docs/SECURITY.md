@@ -29,7 +29,7 @@ We will acknowledge your report within **48 hours** and aim to release a fix wit
 
 This policy covers vulnerabilities in the DeepReach tool itself (e.g. path traversal in the scanner, arbitrary code execution in a parser). It does **not** cover:
 
-- Vulnerabilities in third-party dependencies detected *by* DeepReach — that is the tool's purpose.
+- Vulnerabilities in third-party dependencies detected *by* DeepReach - that is the tool's purpose.
 - Vulnerabilities in the user's own project that DeepReach surfaces.
 
 ---

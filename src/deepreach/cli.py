@@ -249,7 +249,7 @@ def _license_command(_args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Scan orchestrator — reads like pseudocode
+# Scan orchestrator - reads like pseudocode
 # ---------------------------------------------------------------------------
 
 
@@ -303,7 +303,7 @@ def _run_scan_internal(target_path: Path) -> ScanResult:
 
 
 # ---------------------------------------------------------------------------
-# Pure helpers — data in, data out
+# Pure helpers - data in, data out
 # ---------------------------------------------------------------------------
 
 _DepTuple = tuple[str, str, str, str | None, list[str]]

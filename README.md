@@ -20,7 +20,7 @@ cd openbound
 python -m venv .venv && .venv/Scripts/activate
 pip install -e .
 
-# Point it at any Node.js or Python project — recursively scans all subdirectories
+# Point it at any Node.js or Python project - recursively scans all subdirectories
 python -m deepreach scan /path/to/your/project
 
 # Get machine-readable output for CI/CD pipelines
@@ -61,7 +61,7 @@ docker run --rm -v /path/to/your/project:/workspace deepreach scan /workspace
 
 ## 💡 Why Reachability Matters
 
-Standard dependency scanners report *every* vulnerable version in your dependency tree — including transitive deps you don't even call. This leads to hundreds of false-positive alerts for vulnerabilities that are literally unreachable in your code.
+Standard dependency scanners report *every* vulnerable version in your dependency tree - including transitive deps you don't even call. This leads to hundreds of false-positive alerts for vulnerabilities that are literally unreachable in your code.
 
 **DeepReach only tells you about CVEs in code paths your application actually executes.**
 
@@ -77,7 +77,7 @@ deepreach   →   3 REACHABLE CVEs    (these are the ones to fix TODAY)
 
 ```
 src/deepreach/
-├── cli.py                  # CLI entry point — scan, explain, self-test, license
+├── cli.py                  # CLI entry point - scan, explain, self-test, license
 ├── models.py               # Type-safe data models (Advisory, Finding, Edge, etc.)
 ├── config.py               # XDG-compliant cache path configuration
 ├── lockfile_parser/
