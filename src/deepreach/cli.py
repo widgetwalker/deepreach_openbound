@@ -1,17 +1,34 @@
 """Command-line interface for DeepReach."""
 
+from __future__ import annotations
+
 import argparse
 import logging
-from pathlib import Path
+import os
 import sys
-from typing import List, Optional
+from pathlib import Path
+
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from . import __version__
 from .log import get_logger
-from .models import ScanResult
+from .models import (
+    Advisory,
+    Confidence,
+    Edge,
+    Finding,
+    ScanResult,
+)
+from .timing import Timer
 
+if TYPE_CHECKING:
+    from .lockfile_parser.base import EcosystemAdapter
+    from .vuln_federation.base import SourceAdapter
+    from .vuln_federation.store import VulnerabilityStore
+    from .reachability.base import LanguageAdapter
 
-# Ensure stdout uses UTF-8 to prevent charmap UnicodeEncodeErrors on Windows
+# Windows consoles default to cp1252 which chokes on UTF-8 output
 if (
     sys.stdout
     and sys.stdout.encoding
@@ -22,9 +39,15 @@ if (
 
 logger = get_logger(__name__)
 
+_IGNORED_DIRS = frozenset(
+    [".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__"]
+)
+
+_SEVERITY_ORDER = ["critical", "high", "medium", "low"]
+
 
 def create_parser() -> argparse.ArgumentParser:
-    """Create command-line argument parser."""
+    """Build the top-level argument parser."""
     parser = argparse.ArgumentParser(
         prog="deepreach",
         description="Reachable CVE Scanner for Node and Python projects",
@@ -35,7 +58,6 @@ def create_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # init command
     init_parser = subparsers.add_parser(
         "init", help="Download and index vulnerability advisories"
     )
@@ -48,7 +70,6 @@ def create_parser() -> argparse.ArgumentParser:
         help="Limit to specific ecosystem (default: both)",
     )
 
-    # scan command
     scan_parser = subparsers.add_parser(
         "scan", help="Scan repository for reachable CVEs"
     )
@@ -90,7 +111,6 @@ def create_parser() -> argparse.ArgumentParser:
         help="Continue if some advisory sources fail",
     )
 
-    # explain command
     explain_parser = subparsers.add_parser(
         "explain", help="Show call path for a specific CVE"
     )
@@ -99,16 +119,13 @@ def create_parser() -> argparse.ArgumentParser:
         "cve_id", help="CVE ID to explain (e.g., CVE-2024-1234)"
     )
 
-    # self-test command
     subparsers.add_parser("self-test", help="Run internal self-test suite")
-
-    # license command
     subparsers.add_parser("license", help="Show license and third-party notices")
 
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point."""
     if argv is None:
         argv = sys.argv[1:]
@@ -116,32 +133,32 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
 
-    # Configure logging
     if getattr(args, "debug", False):
         logger.setLevel(logging.DEBUG)
 
-    # Handle commands
-    if args.command == "init":
-        return _init_command(args)
-    elif args.command == "scan":
-        return _scan_command(args)
-    elif args.command == "explain":
-        return _explain_command(args)
-    elif args.command == "self-test":
-        return _self_test_command(args)
-    elif args.command == "license":
-        return _license_command(args)
-    elif args.command == "version":
-        print(f"deepreach {__version__}")
-        return 0
-    else:
-        # No command specified
-        parser.print_help()
-        return 1
+    handlers: dict[str, Callable[[argparse.Namespace], int]] = {
+        "init": _init_command,
+        "scan": _scan_command,
+        "explain": _explain_command,
+        "self-test": _self_test_command,
+        "license": _license_command,
+    }
+
+    handler = handlers.get(args.command)  # type: ignore[arg-type]
+    if handler:
+        return handler(args)
+
+    parser.print_help()
+    return 1
 
 
-def _init_command(args) -> int:
-    """Handle init command."""
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+
+def _init_command(args: argparse.Namespace) -> int:
+    """Initialise the local advisory cache."""
     logger.info("Initializing DeepReach vulnerability cache...")
     from .vuln_federation.store import VulnerabilityStore
     from .vuln_federation.osv import OSVAdapter
@@ -158,205 +175,10 @@ def _init_command(args) -> int:
         return 1
 
 
-
-def _run_scan_internal(target_path: Path) -> ScanResult:  # noqa: C901
-    """Run vulnerability reachability scan and return ScanResult."""
-
-    import os
-    from .vuln_federation.store import VulnerabilityStore
-    from .vuln_federation.osv import OSVAdapter
-    from .lockfile_parser.npm import NpmLockfileParser
-    from .lockfile_parser.pip import PipLockfileParser
-    from .reachability.javascript import JavaScriptLanguageAdapter
-    from .reachability.python_lang import PythonLanguageAdapter
-    from .models import Finding, ScanResult
-
-    store = VulnerabilityStore()
-    osv = OSVAdapter()
-
-    dependencies = []
-    npm_parser = NpmLockfileParser()
-    pip_parser = PipLockfileParser()
-
-    logger.info("Searching for lockfiles...")
-    for root, dirs, files in os.walk(target_path):
-        if any(
-            ignored in Path(root).parts
-            for ignored in [
-                ".git",
-                "node_modules",
-                ".venv",
-                "venv",
-                "dist",
-                "build",
-                "__pycache__",
-            ]
-        ):
-            continue
-
-        root_path = Path(root)
-
-        if "package-lock.json" in files:
-            npm_lock = root_path / "package-lock.json"
-            logger.info(f"Found npm lockfile at {npm_lock}")
-            try:
-                try:
-                    with open(npm_lock, "r", encoding="utf-8") as f:
-                        content = f.read()
-                except UnicodeDecodeError:
-                    with open(npm_lock, "r", encoding="utf-16") as f:
-                        content = f.read()
-                deps = npm_parser.parse(content)
-                dependencies.extend(deps)
-            except Exception as e:
-                logger.error(f"Failed to parse {npm_lock}: {e}")
-
-        if "requirements.txt" in files:
-            pip_lock = root_path / "requirements.txt"
-            logger.info(f"Found pip lockfile at {pip_lock}")
-            try:
-                try:
-                    with open(pip_lock, "r", encoding="utf-8") as f:
-                        content = f.read()
-                except UnicodeDecodeError:
-                    with open(pip_lock, "r", encoding="utf-16") as f:
-                        content = f.read()
-                deps = pip_parser.parse(content)
-                dependencies.extend(deps)
-            except Exception as e:
-                logger.error(f"Failed to parse {pip_lock}: {e}")
-
-    if not dependencies:
-        logger.warning("No lockfiles found or no dependencies parsed.")
-        return ScanResult(
-            meta={
-                "target": str(target_path),
-                "total_dependencies": 0,
-                "vulnerable_packages": 0,
-                "version": __version__,
-            },
-            summary={},
-            findings=[],
-        )
-
-    logger.info(
-        f"Parsed {len(dependencies)} dependencies. Checking for vulnerabilities..."
-    )
-
-    vulnerable_deps = []
-    for dep in dependencies:
-        ecosystem, name, version, parent, dep_path = dep
-        advisories = store.get_advisories(ecosystem, name)
-
-        if not advisories:
-            advisories = osv.fetch_advisories(ecosystem, name, version)
-            for adv in advisories:
-                store.upsert_advisory(adv, osv.get_name())
-
-        if advisories:
-            vulnerable_deps.append((dep, advisories))
-
-    if not vulnerable_deps:
-        logger.info("No known vulnerabilities found in dependencies.")
-        return ScanResult(
-            meta={
-                "target": str(target_path),
-                "total_dependencies": len(dependencies),
-                "vulnerable_packages": 0,
-                "version": __version__,
-            },
-            summary={},
-            findings=[],
-        )
-
-    logger.info(
-        f"Found {len(vulnerable_deps)} vulnerable dependencies. "
-        "Starting reachability analysis..."
-    )
-
-    js_adapter = JavaScriptLanguageAdapter()
-    py_adapter = PythonLanguageAdapter()
-    all_edges = []
-
-    logger.info("Scanning source code for function calls via AST...")
-    for root, dirs, files in os.walk(target_path):
-        if any(
-            ignored in Path(root).parts
-            for ignored in [
-                ".git",
-                "node_modules",
-                ".venv",
-                "venv",
-                "dist",
-                "build",
-                "__pycache__",
-            ]
-        ):
-            continue
-
-        for file in files:
-            file_path = str(Path(root) / file)
-
-            if any(file.endswith(ext) for ext in js_adapter.get_file_extensions()):
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        _, edges = js_adapter.parse_file(file_path, f.read())
-                        all_edges.extend(edges)
-                except Exception:
-                    pass
-
-            if any(file.endswith(ext) for ext in py_adapter.get_file_extensions()):
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        _, edges = py_adapter.parse_file(file_path, f.read())
-                        all_edges.extend(edges)
-                except Exception:
-                    pass
-
-    logger.info(
-        f"Extracted {len(all_edges)} function calls from the project source code."
-    )
-
-    scan_findings: List[Finding] = []
-    for dep, advisories in vulnerable_deps:
-        ecosystem, name, version, parent, dep_path = dep
-        for adv in advisories:
-            is_reachable = False
-            reachable_edges = []
-            vulnerable_funcs = adv.vulnerable_functions or []
-            for edge in all_edges:
-                for func in vulnerable_funcs:
-                    if func in edge.callee_ref:
-                        is_reachable = True
-                        reachable_edges.append(edge)
-
-            call_path = [edge.caller for edge in reachable_edges]
-            finding_obj = Finding(
-                advisory=adv,
-                reachable=is_reachable,
-                confidence="high" if is_reachable else "low",
-                call_path=call_path,
-                fix_version=adv.fix_version,
-            )
-            scan_findings.append(finding_obj)
-
-    return ScanResult(
-        meta={
-            "target": str(target_path),
-            "total_dependencies": len(dependencies),
-            "vulnerable_packages": len(vulnerable_deps),
-            "version": __version__,
-        },
-        summary={},
-        findings=scan_findings,
-    )
-
-
-def _scan_command(args) -> int:  # noqa: C901
-    """Handle scan command."""
+def _scan_command(args: argparse.Namespace) -> int:
+    """Run a vulnerability scan and emit the requested report format."""
     logger.info(f"Scanning {args.path} for reachable CVEs...")
 
-    from pathlib import Path
     target_path = Path(args.path)
     if not target_path.exists():
         logger.error(f"Path does not exist: {target_path}")
@@ -364,94 +186,44 @@ def _scan_command(args) -> int:  # noqa: C901
 
     scan_result = _run_scan_internal(target_path)
 
-    reachable_count = sum(1 for f in scan_result.findings if f.reachable)
-
-    # ── Output: JSON ──────────────────────────────────────────────────────────
     output_format = getattr(args, "format", "table")
     show_all = getattr(args, "all", False)
 
-    if output_format == "json":
-        # Filter findings if --all / show_all is False
-        if not show_all:
-            filtered_findings = [f for f in scan_result.findings if f.reachable]
-            json_scan_result = ScanResult(
-                meta=scan_result.meta,
-                summary=scan_result.summary,
-                findings=filtered_findings,
-            )
-        else:
-            json_scan_result = scan_result
+    _emit_report(scan_result, output_format, show_all)
 
-        from .report.json_fmt import generate_json_report
-        print(generate_json_report(json_scan_result), end="")
-
-    elif output_format == "sarif":
-        # Filter findings if --all / show_all is False
-        if not show_all:
-            filtered_findings = [f for f in scan_result.findings if f.reachable]
-            sarif_scan_result = ScanResult(
-                meta=scan_result.meta,
-                summary=scan_result.summary,
-                findings=filtered_findings,
-            )
-        else:
-            sarif_scan_result = scan_result
-
-        from .report.sarif import generate_sarif_report
-        print(generate_sarif_report(sarif_scan_result), end="")
-
-    else:
-        # ── Output: Table (default) ───────────────────────────────────────────
-        from .report.table import generate_table_report
-        print(generate_table_report(scan_result, show_unreachable=show_all), end="")
-
-    # ── --fail-on gate ────────────────────────────────────────────────────────
     fail_on = getattr(args, "fail_on", None)
-    if fail_on:
-        severity_order = ["critical", "high", "medium", "low"]
+    if fail_on and _severity_gate_tripped(scan_result.findings, fail_on):
         use_color = not getattr(args, "no_color", False) and sys.stdout.isatty()
+        if output_format == "table":
+            msg = (
+                f"\n✖  Failing: reachable {fail_on.upper()} CVE found "
+                f"(--fail-on {fail_on})"
+            )
+            print(_colorize("31;1", msg) if use_color else msg)
+        return 2
 
-        def c(code: str, text: str) -> str:
-            return f"\033[{code}m{text}\033[0m" if use_color else text
-
-        RED = "31;1"
-        fail_idx = severity_order.index(fail_on.lower())
-        for finding in scan_result.findings:
-            if not finding.reachable:
-                continue
-            sev = finding.advisory.severity.lower()
-            if sev in severity_order and severity_order.index(sev) <= fail_idx:
-                if output_format == "table":
-                    print(
-                        c(RED, f"\n✖  Failing: reachable {sev.upper()} CVE found "
-                          f"(--fail-on {fail_on})")
-                    )
-                return 2  # distinct exit code for severity gate
-
+    reachable_count = sum(1 for f in scan_result.findings if f.reachable)
     return 0 if reachable_count == 0 else 1
 
 
-def _explain_command(args) -> int:
-    """Handle explain command."""
-    from pathlib import Path
+def _explain_command(args: argparse.Namespace) -> int:
+    """Show the call path for a specific CVE."""
     target_path = Path(args.path)
-    cve_id = args.cve_id
-
     if not target_path.exists():
         logger.error(f"Path does not exist: {target_path}")
         return 1
 
-    logger.info(f"Explaining {cve_id} in {args.path}...")
+    logger.info(f"Explaining {args.cve_id} in {args.path}...")
     scan_result = _run_scan_internal(target_path)
 
     from .report.explain import generate_explain_report
-    print(generate_explain_report(scan_result.findings, cve_id), end="")
+
+    print(generate_explain_report(scan_result.findings, args.cve_id), end="")
     return 0
 
 
-
-def _self_test_command(args) -> int:
-    """Handle self-test command."""
+def _self_test_command(_args: argparse.Namespace) -> int:
+    """Run the built-in test suite."""
     import subprocess
 
     print("Running DeepReach self-test suite...\n")
@@ -462,25 +234,290 @@ def _self_test_command(args) -> int:
     return result.returncode
 
 
-def _license_command(args) -> int:
-    """Handle license command."""
-    from pathlib import Path
-
-    # Try relative to the package root
+def _license_command(_args: argparse.Namespace) -> int:
+    """Print license and third-party notices."""
     root = Path(__file__).parent.parent.parent
     try:
-        license_path = root / "LICENSE"
-        notice_path = root / "NOTICE"
         print("=== DeepReach License ===")
-        print(license_path.read_text(encoding="utf-8"))
+        print((root / "LICENSE").read_text(encoding="utf-8"))
         print("\n=== Third-Party Notices ===")
-        print(notice_path.read_text(encoding="utf-8"))
+        print((root / "NOTICE").read_text(encoding="utf-8"))
         return 0
     except FileNotFoundError as e:
         logger.error(f"License file not found: {e}")
         return 1
 
 
+# ---------------------------------------------------------------------------
+# Scan orchestrator — reads like pseudocode
+# ---------------------------------------------------------------------------
+
+
+def _run_scan_internal(target_path: Path) -> ScanResult:
+    """Orchestrate lockfile discovery → advisory lookup → AST analysis → findings."""
+    from .vuln_federation.store import VulnerabilityStore
+    from .vuln_federation.osv import OSVAdapter
+
+    with Timer() as t:
+        dependencies = _discover_dependencies(target_path)
+
+        if not dependencies:
+            logger.warning("No lockfiles found or no dependencies parsed.")
+            return _empty_result(target_path, 0)
+
+        logger.info(
+            f"Parsed {len(dependencies)} dependencies. "
+            "Checking for vulnerabilities..."
+        )
+
+        store = VulnerabilityStore()
+        osv = OSVAdapter()
+        vulnerable_deps = _fetch_advisories(dependencies, store, osv)
+
+        if not vulnerable_deps:
+            logger.info("No known vulnerabilities found in dependencies.")
+            return _empty_result(target_path, len(dependencies))
+
+        logger.info(
+            f"Found {len(vulnerable_deps)} vulnerable dependencies. "
+            "Starting reachability analysis..."
+        )
+
+        edges = _collect_edges(target_path)
+        findings = _match_findings(vulnerable_deps, edges)
+
+    return ScanResult(
+        meta={
+            "target": str(target_path),
+            "total_dependencies": len(dependencies),
+            "vulnerable_packages": len(vulnerable_deps),
+            "version": __version__,
+        },
+        summary={
+            "duration_ms": t.metrics.duration_ms,
+            "peak_rss_bytes": t.metrics.peak_rss_bytes,
+        },
+        findings=findings,
+        metrics=t.metrics,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Pure helpers — data in, data out
+# ---------------------------------------------------------------------------
+
+_DepTuple = tuple[str, str, str, str | None, list[str]]
+
+
+def _empty_result(target_path: Path, dep_count: int) -> ScanResult:
+    return ScanResult(
+        meta={
+            "target": str(target_path),
+            "total_dependencies": dep_count,
+            "vulnerable_packages": 0,
+            "version": __version__,
+        },
+        summary={},
+        findings=[],
+    )
+
+
+def _should_skip_dir(root: Path) -> bool:
+    return bool(_IGNORED_DIRS & set(root.parts))
+
+
+def _read_file(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path.read_text(encoding="utf-16")
+
+
+def _discover_dependencies(target_path: Path) -> list[_DepTuple]:
+    """Walk the tree and parse every lockfile found."""
+    from .lockfile_parser.npm import NpmLockfileParser
+    from .lockfile_parser.pip import PipLockfileParser
+
+    npm_parser = NpmLockfileParser()
+    pip_parser = PipLockfileParser()
+    dependencies: list[_DepTuple] = []
+
+    logger.info("Searching for lockfiles...")
+    for root, _dirs, files in os.walk(target_path):
+        root_path = Path(root)
+        if _should_skip_dir(root_path):
+            continue
+
+        if "package-lock.json" in files:
+            _parse_lockfile(
+                root_path / "package-lock.json", npm_parser, dependencies
+            )
+
+        if "requirements.txt" in files:
+            _parse_lockfile(
+                root_path / "requirements.txt", pip_parser, dependencies
+            )
+
+    return dependencies
+
+
+def _parse_lockfile(
+    path: Path,
+    parser: EcosystemAdapter,
+    out: list[_DepTuple],
+) -> None:
+    logger.info(f"Found lockfile at {path}")
+    try:
+        content = _read_file(path)
+        deps = parser.parse(content)
+        out.extend(deps)
+    except Exception as e:
+        logger.error(f"Failed to parse {path}: {e}")
+
+
+def _fetch_advisories(
+    dependencies: list[_DepTuple],
+    store: VulnerabilityStore,
+    osv: SourceAdapter,
+) -> list[tuple[_DepTuple, list[Advisory]]]:
+    """Look up each dependency against local cache, falling back to OSV."""
+    vulnerable: list[tuple[_DepTuple, list[Advisory]]] = []
+
+    for dep in dependencies:
+        ecosystem, name, version, _parent, _path = dep
+        advisories = store.get_advisories(ecosystem, name)
+
+        if not advisories:
+            advisories = osv.fetch_advisories(ecosystem, name, version)
+            for adv in advisories:
+                store.upsert_advisory(adv, osv.get_name())
+
+        if advisories:
+            vulnerable.append((dep, advisories))
+
+    return vulnerable
+
+
+def _collect_edges(target_path: Path) -> list[Edge]:
+    """Walk source files and extract call-graph edges via AST."""
+    from .reachability.javascript import JavaScriptLanguageAdapter
+    from .reachability.python_lang import PythonLanguageAdapter
+
+    js_adapter = JavaScriptLanguageAdapter()
+    py_adapter = PythonLanguageAdapter()
+    edges: list[Edge] = []
+
+    logger.info("Scanning source code for function calls via AST...")
+    for root, _dirs, files in os.walk(target_path):
+        root_path = Path(root)
+        if _should_skip_dir(root_path):
+            continue
+
+        for file in files:
+            file_path = str(root_path / file)
+
+            adapter: LanguageAdapter | None = None
+            if any(file.endswith(ext) for ext in js_adapter.get_file_extensions()):
+                adapter = js_adapter
+            elif any(file.endswith(ext) for ext in py_adapter.get_file_extensions()):
+                adapter = py_adapter
+
+            if adapter is None:
+                continue
+
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    _, file_edges = adapter.parse_file(file_path, f.read())
+                    edges.extend(file_edges)
+            except Exception:
+                pass
+
+    logger.info(f"Extracted {len(edges)} function calls from the project source code.")
+    return edges
+
+
+def _match_findings(
+    vulnerable_deps: list[tuple[_DepTuple, list[Advisory]]],
+    edges: list[Edge],
+) -> list[Finding]:
+    """Pure evaluator: match advisories against call-graph edges."""
+    findings: list[Finding] = []
+
+    for dep, advisories in vulnerable_deps:
+        for adv in advisories:
+            reachable_edges = []
+            vuln_funcs = adv.vulnerable_functions or []
+
+            for edge in edges:
+                for func in vuln_funcs:
+                    if func in edge.callee_ref:
+                        reachable_edges.append(edge)
+
+            is_reachable = bool(reachable_edges)
+            findings.append(
+                Finding(
+                    advisory=adv,
+                    reachable=is_reachable,
+                    confidence=Confidence.HIGH if is_reachable else Confidence.LOW,
+                    call_path=[e.caller for e in reachable_edges],
+                    fix_version=adv.fix_version,
+                )
+            )
+
+    return findings
+
+
+def _severity_gate_tripped(findings: list[Finding], fail_on: str) -> bool:
+    """Return True if any reachable finding meets or exceeds the threshold."""
+    fail_idx = _SEVERITY_ORDER.index(fail_on.lower())
+    for finding in findings:
+        if not finding.reachable:
+            continue
+        sev = finding.advisory.severity.value
+        if sev in _SEVERITY_ORDER and _SEVERITY_ORDER.index(sev) <= fail_idx:
+            return True
+    return False
+
+
+def _filter_findings(findings: list[Finding], show_all: bool) -> list[Finding]:
+    if show_all:
+        return findings
+    return [f for f in findings if f.reachable]
+
+
+def _emit_report(result: ScanResult, fmt: str, show_all: bool) -> None:
+    """Select and print the appropriate report format."""
+    if fmt == "json":
+        filtered = ScanResult(
+            meta=result.meta,
+            summary=result.summary,
+            findings=_filter_findings(result.findings, show_all),
+            metrics=result.metrics,
+        )
+        from .report.json_fmt import generate_json_report
+
+        print(generate_json_report(filtered), end="")
+
+    elif fmt == "sarif":
+        filtered = ScanResult(
+            meta=result.meta,
+            summary=result.summary,
+            findings=_filter_findings(result.findings, show_all),
+            metrics=result.metrics,
+        )
+        from .report.sarif import generate_sarif_report
+
+        print(generate_sarif_report(filtered), end="")
+
+    else:
+        from .report.table import generate_table_report
+
+        print(generate_table_report(result, show_unreachable=show_all), end="")
+
+
+def _colorize(code: str, text: str) -> str:
+    return f"\033[{code}m{text}\033[0m"
+
+
 if __name__ == "__main__":
     sys.exit(main())
-

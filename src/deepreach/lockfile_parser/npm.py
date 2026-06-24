@@ -1,7 +1,8 @@
 """NPM lockfile parser (package-lock.json v1/v2/v3)."""
 
+from __future__ import annotations
+
 import json
-from typing import List, Tuple, Optional
 
 
 class NpmLockfileParser:
@@ -21,7 +22,7 @@ class NpmLockfileParser:
 
     def parse(
         self, content: str
-    ) -> List[Tuple[str, str, str, Optional[str], List[str]]]:  # noqa: E501
+    ) -> list[tuple[str, str, str, str | None, list[str]]]:
         """Parse package-lock.json and return dependency tuples."""
         try:
             data = json.loads(content)
@@ -31,19 +32,15 @@ class NpmLockfileParser:
         if not self.detect(content):
             raise ValueError("Not a valid package-lock.json file")
 
-        dependencies: List[Tuple[str, str, str, Optional[str], List[str]]] = []
+        dependencies: list[tuple[str, str, str, str | None, list[str]]] = []
         lockfile_version = data.get("lockfileVersion", 0)
         packages = data.get("packages", {})
 
-        # Handle different lockfile versions
         if lockfile_version >= 2:
-            # v2/v3 format: packages object with paths as keys
             for path, package_info in packages.items():
                 if path == "" or not path.startswith("node_modules/"):
-                    # Skip root package or non-dependency paths
                     continue
 
-                # Extract package name from path (e.g., node_modules/axios)
                 parts = path.split("node_modules/")
                 name = parts[-1]
                 version = package_info.get("version", "")
@@ -51,15 +48,11 @@ class NpmLockfileParser:
                 if not version:
                     continue
 
-                # Determine parent from path
                 parent_name = None
-                dep_path: List[str] = []
+                dep_path: list[str] = []
 
-                # For now, we'll keep it simple - in a full implementation,
-                # we would trace dependencies through the "dependencies" field
                 dependencies.append(("npm", name, version, parent_name, dep_path))
         else:
-            # v1 format: dependencies object at root
             deps = data.get("dependencies", {})
             for name, version_info in deps.items():
                 if isinstance(version_info, dict):

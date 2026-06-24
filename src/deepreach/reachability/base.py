@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Protocol, List, runtime_checkable
+from typing import Protocol, runtime_checkable
+
 from ..models import DefSite, Edge
 
 
@@ -12,17 +13,12 @@ class LanguageAdapter(Protocol):
 
     def parse_file(
         self, file_path: str, content: str
-    ) -> tuple[List[DefSite], List[Edge]]:  # noqa: E501
-        """
-        Parse a source file and extract definitions and edges.
-
-        Returns:
-            Tuple of (definitions, edges)
-        """
+    ) -> tuple[list[DefSite], list[Edge]]:
+        """Parse a source file and extract definitions and edges."""
         ...
 
-    def get_file_extensions(self) -> List[str]:
-        """Get list of file extensions this adapter handles."""
+    def get_file_extensions(self) -> list[str]:
+        """Return file extensions this adapter handles."""
         ...
 
     def is_ignored_path(self, file_path: str) -> bool:

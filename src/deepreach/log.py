@@ -1,14 +1,16 @@
 """Logging configuration for DeepReach."""
 
+from __future__ import annotations
+
 import logging
 import sys
 
 
 def get_logger(name: str = "deepreach") -> logging.Logger:
-    """Get configured logger instance."""
+    """Return a configured logger, creating the handler once."""
     logger = logging.getLogger(name)
 
-    if not logger.handlers:  # Avoid adding handlers multiple times
+    if not logger.handlers:
         handler = logging.StreamHandler(sys.stderr)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

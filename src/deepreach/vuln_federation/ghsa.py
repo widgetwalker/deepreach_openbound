@@ -1,24 +1,27 @@
 """GitHub Security Advisories adapter for vulnerability federation."""
 
-from typing import List
-from datetime import timedelta
+from __future__ import annotations
 
+from datetime import timedelta
 
 from ..models import Advisory
 from .base import SourceAdapter
 from ..log import get_logger
 
-
 logger = get_logger(__name__)
+
+_ECOSYSTEM_MAP: dict[str, str] = {
+    "npm": "npm",
+    "pip": "pip",
+}
 
 
 class GHSAAdapter(SourceAdapter):
     """Adapter for GitHub Security Advisories (GHSA)."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.base_url = "https://api.github.com/advisories"
-        self.cache_timeout = timedelta(hours=6)  # Cache for 6 hours
-        # GitHub API requires a User-Agent header
+        self.cache_timeout = timedelta(hours=6)
         self.headers = {
             "User-Agent": "DeepReach/0.1.0 (+https://github.com/widgetwalker/deepreach_openbound)"
         }
@@ -28,28 +31,15 @@ class GHSAAdapter(SourceAdapter):
 
     def fetch_advisories(
         self, ecosystem: str, package: str, version: str
-    ) -> List[Advisory]:  # noqa: E501
+    ) -> list[Advisory]:
         """Fetch advisories for a specific package version from GHSA."""
         try:
-            # Map our ecosystem names to GHSA format
-            ghsa_ecosystem = {"npm": "npm", "pip": "pip"}.get(ecosystem)
-
+            ghsa_ecosystem = _ECOSYSTEM_MAP.get(ecosystem)
             if not ghsa_ecosystem:
                 logger.warning(f"Unsupported ecosystem for GHSA: {ecosystem}")
                 return []
 
-            # Query GHSA for advisories affecting this package
-            # Note: GHSA API doesn't have a direct package/version
-            # endpoint for filtering. We need to fetch recent
-            # advisories and filter locally (not ideal but works for demo).
-            # In production, we'd want to use the GraphQL endpoint
-            # or maintain a local cache.
-
-            # GitHub API doesn't support filtering by package in REST API easily
-            # We would need to use GraphQL or fetch and filter
-            # For this implementation, we'll note this limitation and return empty
-            # A full implementation would use GraphQL or maintain periodic sync
-
+            # GraphQL endpoint required for package-level filtering
             logger.warning(
                 "GHSA adapter fetch_advisories not fully implemented - "
                 "returning empty list"
