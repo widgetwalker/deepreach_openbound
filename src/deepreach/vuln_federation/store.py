@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-from ..models import Advisory
+from ..models import Advisory, Severity
 from ..config import get_vulns_db_path
 
 
@@ -129,7 +129,7 @@ class VulnerabilityStore:
                         else None
                     ),
                     fix_version=row["fix_version"],
-                    severity=row["severity"],
+                    severity=Severity(row["severity"]),
                     summary=row["summary"],
                     details=row["details"],
                 )
@@ -165,7 +165,7 @@ class VulnerabilityStore:
                         else None
                     ),
                     fix_version=row["fix_version"],
-                    severity=row["severity"],
+                    severity=Severity(row["severity"]),
                     summary=row["summary"],
                     details=row["details"],
                 )
