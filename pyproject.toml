@@ -1,6 +1,6 @@
 [build-system]
 requires = ["hatchling"]
-build-backend = "hatchling"
+build-backend = "hatchling.build"
 
 [project]
 name = "deepreach"
@@ -60,14 +60,7 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-include = [
-    "/src/deepreach",
-    "docs/*",
-    "examples/*",
-    "tests/*",
-    "[!**/__pycache__]",
-    "[!**/*.pyc]",
-]
+packages = ["src/deepreach"]
 
 [tool.ruff]
 line-length = 88
