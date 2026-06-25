@@ -22,8 +22,10 @@ Here is the exact step-by-step terminal walkthrough for the video recording.
 Show how fast and clean it is to set up:
 
 ```bash
-# 1. Activate environment and install DeepReach
-pip install -e .
+# 1. Activate the local virtual environment (on Windows)
+.venv\Scripts\activate
+
+# (Optional: On macOS/Linux, run: source .venv/bin/activate)
 
 # 2. Populate the local SQLite vulnerability cache
 python -m deepreach init
