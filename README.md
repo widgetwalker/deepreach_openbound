@@ -169,6 +169,3 @@ Found a vulnerability in DeepReach itself? Please read our [SECURITY.md](SECURIT
 
 ---
 
-## Acknowledgements
-
-This project was built with the assistance of Antigravity, an AI pair programmer by Google DeepMind.
